@@ -3,6 +3,7 @@ const express = require("express")
 const MongoClient = require("mongodb").MongoClient
 const assert = require("assert")
 const bodyParser = require("body-parser")
+const path = require("path")
 
 // Connection URL
 const url = "mongodb://localhost:27017"
@@ -18,7 +19,7 @@ const HOST = "0.0.0.0"
 
 // App
 const app = express()
-app.use(express.static("public"))
+app.use(express.static(__dirname));
 app.use(bodyParser.json())
 
 // Use connect method to connect to the Server
@@ -30,7 +31,11 @@ client.connect(function (err) {
   const gameInfoCollection = db.collection("gameInfo")
 
   app.get("/", (req, res) => {
-    res.send("Test")
+    res.sendFile(path.join(__dirname + "/index.html"))
+  })
+
+  app.get("/game", (req, res) => {
+    res.sendFile(path.join(__dirname + "/game.html"))
   })
 
   app.post("/game/", (req, res) => {
