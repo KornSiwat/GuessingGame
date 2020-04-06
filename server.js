@@ -19,7 +19,7 @@ const HOST = "0.0.0.0"
 
 // App
 const app = express()
-app.use(express.static(__dirname));
+app.use(express.static(__dirname))
 app.use(bodyParser.json())
 
 // Use connect method to connect to the Server
@@ -42,7 +42,7 @@ client.connect(function (err) {
     let playerName = undefined
 
     if (req.body) {
-      ;({ name: playerName } = req.body)
+      ({ name: playerName } = req.body)
     }
 
     if (!playerName) {
@@ -52,22 +52,22 @@ client.connect(function (err) {
     const solutionLength = 4
     const possibleChoice = ["A", "B", "C", "D"]
     const solution = Array.from(Array(solutionLength)).map(
-      (_) => possibleChoice[Math.round(Math.random() * (solutionLength - 1))]
+      _ => possibleChoice[Math.round(Math.random() * (solutionLength - 1))]
     )
 
     const gameInfo = {
       name: playerName,
       guessCount: 0,
       solution: solution,
-      won: false,
+      won: false
     }
 
     gameInfoCollection
       .insertOne(gameInfo)
-      .then((result) => {
-        res.status(201).send({ gameID: result.ops[0]._id })
+      .then(result => {
+        res.status(201).send({ gameId: result.ops[0]._id })
       })
-      .catch((err) => res.status(500).send("cannotInsertDocument"))
+      .catch(err => res.status(500).send("cannotInsertDocument"))
   })
 })
 
