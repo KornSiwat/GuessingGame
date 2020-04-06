@@ -1,6 +1,7 @@
 "use strict"
 const express = require("express")
 const MongoClient = require("mongodb").MongoClient
+const ObjectID = require("mongodb").ObjectID
 const assert = require("assert")
 const bodyParser = require("body-parser")
 const path = require("path")
@@ -34,15 +35,34 @@ client.connect(function (err) {
     res.sendFile(path.join(__dirname + "/index.html"))
   })
 
-  app.get("/game", (req, res) => {
+  app.get("/game/", (req, res) => {
     res.sendFile(path.join(__dirname + "/game.html"))
+  })
+
+  app.get("/answer/", async (req, res) => {
+    let objectID = req.query.ID
+
+    if (!objectID) {
+      res.status(400).send("No GameID Given")
+    }
+
+    objectID = new ObjectID(objectID)
+
+    const data = await gameInfoCollection
+      .findOne({ _id: { $eq: objectID }}, {answer: 1})
+
+    if (!data) {
+      res.status(404).send("GameInfo Not Found")
+    }
+
+    res.send(data.answer)
   })
 
   app.post("/game/", (req, res) => {
     let playerName = undefined
 
     if (req.body) {
-      ({ name: playerName } = req.body)
+      ;({ name: playerName } = req.body)
     }
 
     if (!playerName) {
@@ -59,15 +79,37 @@ client.connect(function (err) {
       name: playerName,
       guessCount: 0,
       solution: solution,
-      won: false
+      answer: [],
+      won: false,
     }
 
     gameInfoCollection
       .insertOne(gameInfo)
       .then(result => {
-        res.status(201).send({ gameId: result.ops[0]._id })
+        res.status(201).send({ gameID: result.ops[0]._id })
       })
       .catch(err => res.status(500).send("cannotInsertDocument"))
+  })
+
+  app.post("/answer/", (req, res) => {
+    let objectID = undefined
+    let answer = undefined
+
+    if (req.body) {
+      ;({ answer, gameID: objectID } = req.body)
+    }
+
+    if (!answer) {
+      res.status(400).send("No Answer Given")
+    }
+
+    if (!objectID) {
+      res.status(400).send("No GameID Given")
+    }
+
+    objectID = new ObjectID(objectID)
+
+    gameInfoCollection.updateOne({ _id: objectID }, { $inc: { guessCount: 1 } })
   })
 })
 
