@@ -39,7 +39,6 @@ async function loadCurrentStatus() {
     const currentAnswer = res.data.answer
     const currentGuessCount = res.data.guessCount
     const isWon = res.data.won
-    console.log(isWon)
 
     const currentAnswerString = Array.from(Array(4)).reduce((acc, _, index) => {
       if (currentAnswer[index]) {
@@ -60,7 +59,7 @@ async function loadCurrentStatus() {
           `Yay!! You Finished the game with only ${currentGuessCount} guesses`
         )
         location.reload()
-      }, 50)
+      }, 10)
     }
   } catch (error) {
     console.log("cannot load current answer")
@@ -72,8 +71,6 @@ async function answer(button) {
     ID: GAME.ID,
     answer: button.value,
   })
-
-  console.log(res.data.correct)
 
   loadCurrentStatus()
 }
