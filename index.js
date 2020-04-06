@@ -33,14 +33,17 @@ async function loadGame() {
   }
 }
 
-async function loadCurrentAnswer() {
+async function loadCurrentStatus() {
   try {
-    const res = await axios.get(`/answer?ID=${GAME.ID}`)
-    const currentAnswer = res.data
+    const res = await axios.get(`/status?ID=${GAME.ID}`)
+    const currentAnswer = res.data.answer
+    const currentGuessCount = res.data.guessCount
+    const isWon = res.data.won
+    console.log(isWon)
 
     const currentAnswerString = Array.from(Array(4)).reduce((acc, _, index) => {
       if (currentAnswer[index]) {
-        acc += ` $(currentAnswer[index])`
+        acc += ` ${currentAnswer[index]}`
       } else {
         acc += " _"
       }
@@ -49,9 +52,30 @@ async function loadCurrentAnswer() {
     }, "")
 
     updateAnswerBox(currentAnswerString)
+    updateGuessCount(currentGuessCount)
+
+    if (isWon) {
+      setTimeout(function () {
+        alert(
+          `Yay!! You Finished the game with only ${currentGuessCount} guesses`
+        )
+        location.reload()
+      }, 50)
+    }
   } catch (error) {
     console.log("cannot load current answer")
   }
+}
+
+async function answer(button) {
+  const res = await axios.post("/answer", {
+    ID: GAME.ID,
+    answer: button.value,
+  })
+
+  console.log(res.data.correct)
+
+  loadCurrentStatus()
 }
 
 function getPlayerName() {
@@ -71,5 +95,11 @@ function getAnswerBox() {
 }
 
 function updateAnswerBox(newAnswer) {
-  getAnswerBox.innerHTML = newAnswer
+  getAnswerBox().innerText = newAnswer
+}
+
+function updateGuessCount(guessCount) {
+  document.getElementsByClassName(
+    "guessCount"
+  )[0].innerText = `Guess Count: ${guessCount}`
 }

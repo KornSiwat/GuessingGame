@@ -39,7 +39,7 @@ client.connect(function (err) {
     res.sendFile(path.join(__dirname + "/game.html"))
   })
 
-  app.get("/answer/", async (req, res) => {
+  app.get("/status/", async (req, res) => {
     let objectID = req.query.ID
 
     if (!objectID) {
@@ -48,14 +48,20 @@ client.connect(function (err) {
 
     objectID = new ObjectID(objectID)
 
-    const data = await gameInfoCollection
-      .findOne({ _id: { $eq: objectID }}, {answer: 1})
+    const data = await gameInfoCollection.findOne(
+      { _id: { $eq: objectID } },
+      { answer: 1 }
+    )
 
     if (!data) {
       res.status(404).send("GameInfo Not Found")
     }
 
-    res.send(data.answer)
+    res.send({
+      answer: data.answer,
+      guessCount: data.guessCount,
+      won: data.won,
+    })
   })
 
   app.post("/game/", (req, res) => {
@@ -91,12 +97,12 @@ client.connect(function (err) {
       .catch(err => res.status(500).send("cannotInsertDocument"))
   })
 
-  app.post("/answer/", (req, res) => {
+  app.post("/answer/", async (req, res) => {
     let objectID = undefined
     let answer = undefined
 
     if (req.body) {
-      ;({ answer, gameID: objectID } = req.body)
+      ;({ answer, ID: objectID } = req.body)
     }
 
     if (!answer) {
@@ -109,7 +115,49 @@ client.connect(function (err) {
 
     objectID = new ObjectID(objectID)
 
-    gameInfoCollection.updateOne({ _id: objectID }, { $inc: { guessCount: 1 } })
+    gameInfoCollection.updateOne(
+      { _id: { $eq: objectID } },
+      { $inc: { guessCount: 1 } }
+    )
+
+    let data = await gameInfoCollection.findOne(
+      { _id: { $eq: objectID } },
+      { answer: { $slice: 1 } }
+    )
+
+    const correctAnswer = data.solution[0]
+
+    if (correctAnswer === answer) {
+      gameInfoCollection.updateOne(
+        { _id: { $eq: objectID } },
+        { $pop: { solution: -1 } }
+      )
+
+      gameInfoCollection.updateOne(
+        { _id: { $eq: objectID } },
+        {
+          $push: {
+            answer: {
+              $each: [answer],
+              $position: 0,
+            },
+          },
+        }
+      )
+
+      gameInfoCollection.updateMany(
+        { $where: "this.solution.length == 0" },
+        { $set: { won: true } }
+      )
+
+      res.send({
+        correct: true,
+      })
+    } else {
+      res.send({
+        correct: false,
+      })
+    }
   })
 })
 
